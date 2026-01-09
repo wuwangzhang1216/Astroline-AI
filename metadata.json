@@ -1,0 +1,7 @@
+{
+  "name": "Astroline AI",
+  "description": "A professional AI-powered astrology and palmistry application that provides personalized birth chart readings and palm analysis using Gemini models.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
