@@ -15,13 +15,28 @@ export enum RelationshipStatus {
 
 export enum Goal {
   Family = 'Family harmony',
-  Career = 'Career',
-  Health = 'Health',
-  Marriage = 'Getting married',
-  Travel = 'Traveling the world',
-  Education = 'Education',
-  Friends = 'Friends',
-  Children = 'Children',
+  Career = 'Career growth',
+  Health = 'Physical vitality',
+  Marriage = 'Finding a spouse',
+  Travel = 'World exploration',
+  Education = 'Higher learning',
+  Friends = 'Social connections',
+  Children = 'Starting a family',
+}
+
+export enum ZodiacSign {
+  Aries = "Aries",
+  Taurus = "Taurus",
+  Gemini = "Gemini",
+  Cancer = "Cancer",
+  Leo = "Leo",
+  Virgo = "Virgo",
+  Libra = "Libra",
+  Scorpio = "Scorpio",
+  Sagittarius = "Sagittarius",
+  Capricorn = "Capricorn",
+  Aquarius = "Aquarius",
+  Pisces = "Pisces"
 }
 
 export interface UserData {
@@ -46,14 +61,17 @@ export interface PalmistryResult {
   wisdomText: string;
   careerText: string;
   summary: string;
+  dominantHandPrediction: string;
 }
 
 export interface AstrologyResult {
-  sunSign: string;
+  sunSign: ZodiacSign;
   moonSign: string;
   ascendant: string;
   prediction: string;
   powerWord: string;
+  luckyColor: string;
+  compatibilityNote: string;
 }
 
 export enum AppStep {
@@ -61,15 +79,15 @@ export enum AppStep {
   BIRTH_DATE,
   BIRTH_TIME,
   BIRTH_PLACE,
-  PROCESSING_CHART, // Visual buffer
+  PROCESSING_CHART,
   RELATIONSHIP,
   GOALS,
   COLOR,
   ELEMENT,
-  PROCESSING_ACCURACY, // Visual buffer
+  PROCESSING_ACCURACY,
   PALM_INTRO,
   PALM_UPLOAD,
-  PROCESSING_PALM, // AI Call happens here
+  PROCESSING_PALM,
   RESULTS_PREVIEW,
   FULL_REPORT
 }

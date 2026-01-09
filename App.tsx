@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Header, PrimaryButton, SelectionCard, Title, Subtitle, 
-  OptionGrid, Input, Icons 
+  OptionGrid, Input, Icons, PageContainer, ContentArea, ActionArea 
 } from './components/UIComponents';
 import { 
   AppStep, Gender, RelationshipStatus, Goal, 
@@ -9,63 +9,98 @@ import {
 } from './types';
 import { analyzePalmImage, generateAstrologyChart } from './services/geminiService';
 
-// --- Sub-Components (Extracted to fix Hook Rules) ---
+// --- Sub-Components ---
 
-const ProcessingUI = ({ title, subtitle }: { title: string, subtitle?: string }) => (
-  <div className="flex flex-col items-center justify-center h-[80vh] px-6 text-center">
-      <div className="relative w-64 h-64 mb-8">
-            {/* Rotating Chart Graphic */}
-            <div className="absolute inset-0 rounded-full border border-teal-800 animate-[spin_10s_linear_infinite]"></div>
-            <div className="absolute inset-2 rounded-full border border-teal-500/30 animate-[spin_15s_linear_infinite_reverse]"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              {/* Placeholder Horoscope Wheel */}
-              <svg viewBox="0 0 100 100" className="w-full h-full opacity-60">
-                    <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-teal-200" />
-                    <path d="M50 2 L50 98 M2 50 L98 50" stroke="currentColor" strokeWidth="0.5" className="text-teal-200" />
-                    <circle cx="50" cy="50" r="20" fill="#162B36" />
-              </svg>
+const ProcessingUI = ({ title, subtitle, tasks }: { title: string, subtitle?: string, tasks?: string[] }) => {
+  const [currentTask, setCurrentTask] = useState(0);
+
+  useEffect(() => {
+    if (!tasks) return;
+    const interval = setInterval(() => {
+      setCurrentTask(prev => (prev + 1) % tasks.length);
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [tasks]);
+
+  return (
+    <PageContainer>
+        <div className="flex flex-col items-center justify-center flex-1 px-6 text-center animate-fade-in relative">
+            <div className="relative w-64 h-64 mb-10">
+                  <div className="absolute inset-0 bg-teal-500/5 blur-[60px] rounded-full animate-pulse-slow"></div>
+                  
+                  {/* Tech Rings */}
+                  <div className="absolute inset-0 rounded-full border border-teal-500/20 animate-[spin_10s_linear_infinite]"></div>
+                  <div className="absolute inset-4 rounded-full border border-teal-400/10 animate-[spin_15s_linear_infinite_reverse]"></div>
+                  <div className="absolute inset-12 rounded-full border border-indigo-400/20 animate-[spin_6s_linear_infinite]"></div>
+                  
+                  {/* Core */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                     <div className="w-24 h-24 rounded-full bg-[#050B14] flex items-center justify-center relative z-10 shadow-[0_0_30px_rgba(20,184,166,0.15)] border border-teal-500/30 backdrop-blur-md">
+                        <span className="text-3xl animate-pulse">✨</span>
+                     </div>
+                  </div>
+
+                  {/* Orbits */}
+                  <div className="absolute top-0 left-1/2 w-0.5 h-0.5 bg-white rounded-full shadow-[0_0_10px_white] animate-[spin_3s_linear_infinite] origin-[0_128px]"></div>
             </div>
-            {/* Connection lines overlay */}
-            <svg className="absolute inset-0 w-full h-full animate-pulse">
-                <line x1="20" y1="30" x2="80" y2="70" stroke="#4FD1C5" strokeWidth="1" opacity="0.5" />
-                <line x1="80" y1="30" x2="20" y2="70" stroke="#4FD1C5" strokeWidth="1" opacity="0.5" />
-                <circle cx="20" cy="30" r="2" fill="#4FD1C5" />
-                <circle cx="80" cy="70" r="2" fill="#4FD1C5" />
-            </svg>
-      </div>
-      
-      <h2 className="text-2xl serif text-teal-100 mb-4">{title}</h2>
-      {subtitle && (
-          <div className="bg-[#fefce8] text-gray-900 p-4 rounded-xl relative max-w-xs shadow-lg animate-fade-in-up">
-              <p className="font-medium text-sm">{subtitle}</p>
-              {/* Chat bubble tail */}
-              <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-[#fefce8] rotate-45"></div>
-              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                    <div className="w-8 h-8 rounded-full bg-teal-800 border-2 border-[#fefce8] overflow-hidden">
-                      <img src="https://picsum.photos/50/50" alt="Bot" />
-                    </div>
+            
+            <h2 className="text-2xl serif text-white mb-3 tracking-wide">{title}</h2>
+            <p className="text-gray-400 text-sm max-w-[280px] mx-auto leading-relaxed font-light">{subtitle}</p>
+            
+            {tasks && (
+              <div className="mt-8 h-6 flex flex-col items-center justify-center">
+                <p className="text-teal-400 font-mono text-[10px] uppercase tracking-[0.2em] animate-slide-up key={currentTask}">
+                  {tasks[currentTask]}
+                </p>
               </div>
-          </div>
-      )}
-  </div>
-);
+            )}
+        </div>
+    </PageContainer>
+  );
+};
 
 interface ProcessingStepProps {
   title: string;
   subtitle?: string;
-  duration?: number;
-  onNext: () => void;
-  onMount?: () => void;
+  tasks?: string[];
+  minDuration?: number; 
+  processPromise?: Promise<any>; 
+  onComplete: (result?: any) => void;
 }
 
-const ProcessingStep: React.FC<ProcessingStepProps> = ({ title, subtitle, duration = 3000, onNext, onMount }) => {
+const ProcessingStep: React.FC<ProcessingStepProps> = ({ 
+  title, subtitle, tasks, minDuration = 4000, processPromise, onComplete 
+}) => {
   useEffect(() => {
-    if (onMount) onMount();
-    const timer = setTimeout(onNext, duration);
-    return () => clearTimeout(timer);
+    let isMounted = true;
+    const startTime = Date.now();
+
+    const runProcess = async () => {
+      try {
+        let result = null;
+        if (processPromise) {
+          result = await processPromise;
+        }
+
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, minDuration - elapsed);
+
+        setTimeout(() => {
+          if (isMounted) onComplete(result);
+        }, remaining);
+      } catch (e) {
+        console.error(e);
+        setTimeout(() => {
+          if (isMounted) onComplete(null);
+        }, minDuration);
+      }
+    };
+
+    runProcess();
+    return () => { isMounted = false; };
   }, []);
 
-  return <ProcessingUI title={title} subtitle={subtitle} />;
+  return <ProcessingUI title={title} subtitle={subtitle} tasks={tasks} />;
 };
 
 interface PalmUploadStepProps {
@@ -87,15 +122,32 @@ const PalmUploadStep: React.FC<PalmUploadStepProps> = ({ onImageSelected }) => {
   };
 
   return (
-      <div className="flex flex-col items-center justify-center h-full p-6">
-          <Title>Upload your palm</Title>
+      <PageContainer>
+        <ContentArea className="flex flex-col items-center justify-center">
+          <Title>Hand Analysis</Title>
+          <Subtitle>Upload a clear photo of your palm.</Subtitle>
+          
           <div 
-              className="w-full h-64 border-2 border-dashed border-gray-600 rounded-xl flex flex-col items-center justify-center bg-[#162B36] cursor-pointer hover:border-teal-500 transition-colors"
+              className="relative w-64 aspect-[3/4] rounded-2xl overflow-hidden border border-white/10 bg-[#0E1621] shadow-2xl flex flex-col items-center justify-center cursor-pointer group hover:border-teal-500/50 transition-all duration-500 mb-4"
               onClick={() => fileInputRef.current?.click()}
           >
-              <Icons.Female /> 
-              <span className="mt-4 text-gray-400">Tap to select image</span>
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-teal-900/10 via-[#050B14] to-[#050B14]"></div>
+              
+              {/* Corner Accents */}
+              <div className="absolute top-4 left-4 w-3 h-3 border-t border-l border-teal-500/50"></div>
+              <div className="absolute top-4 right-4 w-3 h-3 border-t border-r border-teal-500/50"></div>
+              <div className="absolute bottom-4 left-4 w-3 h-3 border-b border-l border-teal-500/50"></div>
+              <div className="absolute bottom-4 right-4 w-3 h-3 border-b border-r border-teal-500/50"></div>
+              
+              <div className="transition-transform duration-500 group-hover:scale-110 text-teal-500/80 mb-4 relative z-10">
+                 <Icons.Camera />
+              </div>
+              <span className="text-gray-500 text-xs font-medium z-10 tracking-widest uppercase">Tap to Scan</span>
+              
+              {/* Scan Effect */}
+              <div className="absolute left-0 right-0 h-[1px] bg-teal-400 shadow-[0_0_15px_#2dd4bf] animate-[scan_3s_ease-in-out_infinite] opacity-30"></div>
           </div>
+
           <input 
               ref={fileInputRef}
               type="file" 
@@ -104,36 +156,12 @@ const PalmUploadStep: React.FC<PalmUploadStepProps> = ({ onImageSelected }) => {
               className="hidden"
               onChange={handleFileChange}
           />
-          <div className="mt-8 w-full">
-              <PrimaryButton onClick={() => fileInputRef.current?.click()}>Select Photo</PrimaryButton>
-          </div>
-      </div>
+        </ContentArea>
+        <ActionArea>
+             <PrimaryButton onClick={() => fileInputRef.current?.click()}>Launch Scanner</PrimaryButton>
+        </ActionArea>
+      </PageContainer>
   );
-};
-
-interface PalmAnalysisStepProps {
-  palmImage: string | null;
-  onComplete: (result: PalmistryResult) => void;
-}
-
-const PalmAnalysisStep: React.FC<PalmAnalysisStepProps> = ({ palmImage, onComplete }) => {
-  useEffect(() => {
-      const processPalm = async () => {
-          if (palmImage) {
-              const result = await analyzePalmImage(palmImage);
-              onComplete(result);
-          } else {
-             // Should not happen if flow is correct, but safe fallback
-             onComplete({
-               loveScore: 50, healthScore: 50, wisdomScore: 50, careerScore: 50,
-               loveText: "N/A", healthText: "N/A", wisdomText: "N/A", careerText: "N/A", summary: "Analysis failed."
-             });
-          }
-      };
-      processPalm();
-  }, []); // Run once on mount
-
-  return <ProcessingUI title="Analyzing Lines..." subtitle="Deciphering the unique paths of your destiny..." />;
 };
 
 // --- Main App ---
@@ -158,16 +186,11 @@ export default function App() {
   // --- Handlers ---
 
   const handleNext = () => {
-    // Logic for next step depending on current step
     switch (step) {
       case AppStep.LANDING: setStep(AppStep.BIRTH_DATE); break;
-      case AppStep.BIRTH_DATE: 
-        if(userData.birthDate) setStep(AppStep.BIRTH_TIME); 
-        break;
+      case AppStep.BIRTH_DATE: if(userData.birthDate) setStep(AppStep.BIRTH_TIME); break;
       case AppStep.BIRTH_TIME: setStep(AppStep.BIRTH_PLACE); break;
-      case AppStep.BIRTH_PLACE: 
-        if(userData.birthPlace) setStep(AppStep.PROCESSING_CHART); 
-        break;
+      case AppStep.BIRTH_PLACE: if(userData.birthPlace) setStep(AppStep.PROCESSING_CHART); break;
       case AppStep.PROCESSING_CHART: setStep(AppStep.RELATIONSHIP); break;
       case AppStep.RELATIONSHIP: setStep(AppStep.GOALS); break;
       case AppStep.GOALS: setStep(AppStep.COLOR); break;
@@ -175,9 +198,7 @@ export default function App() {
       case AppStep.ELEMENT: setStep(AppStep.PROCESSING_ACCURACY); break;
       case AppStep.PROCESSING_ACCURACY: setStep(AppStep.PALM_INTRO); break;
       case AppStep.PALM_INTRO: setStep(AppStep.PALM_UPLOAD); break;
-      case AppStep.PALM_UPLOAD: 
-        if(userData.palmImage) setStep(AppStep.PROCESSING_PALM);
-        break;
+      case AppStep.PALM_UPLOAD: if(userData.palmImage) setStep(AppStep.PROCESSING_PALM); break;
       case AppStep.PROCESSING_PALM: setStep(AppStep.RESULTS_PREVIEW); break;
       case AppStep.RESULTS_PREVIEW: setStep(AppStep.FULL_REPORT); break;
       default: break;
@@ -192,122 +213,136 @@ export default function App() {
     setUserData(prev => ({ ...prev, [field]: value }));
   };
 
-  // --- Render Functions (Pure UI) ---
+  // --- Render Functions ---
 
   const renderLanding = () => (
-    <div className="flex flex-col h-full items-center justify-between py-10 px-6 bg-[url('https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?q=80&w=2342&auto=format&fit=crop')] bg-cover bg-center relative">
-       <div className="absolute inset-0 bg-[#0d1f2d]/80 z-0"></div>
-       <div className="z-10 w-full flex flex-col items-center">
-         <div className="w-16 h-16 border-2 border-teal-500 rounded-full flex items-center justify-center mb-6">
+    <PageContainer>
+      <div className="absolute inset-0 z-0">
+          <div className="absolute top-[-20%] left-[-20%] w-[140%] h-[100%] bg-[radial-gradient(circle_at_center,#0f2238_0%,transparent_60%)] opacity-60"></div>
+      </div>
+      
+      <ContentArea className="flex flex-col items-center justify-center relative z-10">
+         <div className="w-20 h-20 border border-teal-500/20 rounded-full flex items-center justify-center mb-8 bg-[#0E1621] shadow-[0_0_40px_rgba(20,184,166,0.1)] relative">
+            <div className="absolute inset-0 rounded-full border-t border-teal-500/40 animate-spin opacity-50"></div>
             <Icons.Star />
          </div>
-         <h1 className="text-4xl serif text-center text-transparent bg-clip-text bg-gradient-to-r from-teal-200 to-white font-bold mb-4 drop-shadow-md">
-           Unlock destiny with planets and palm reading
+         <h1 className="text-5xl serif text-center text-transparent bg-clip-text bg-gradient-to-r from-teal-100 via-white to-teal-100 font-bold mb-4 drop-shadow-xl tracking-tighter">
+           ASTROLINE
          </h1>
-         <p className="text-gray-300 text-center text-sm mb-12 max-w-xs">
-           Complete a 1-minute quiz to get a personalized prediction.
+         <p className="text-teal-400/60 font-mono text-[9px] uppercase tracking-[0.4em] mb-12 border-b border-teal-500/10 pb-4">
+           AI Destiny Analysis
          </p>
          
-         <div className="grid grid-cols-3 gap-4 w-full">
+         <div className="flex gap-3 w-full max-w-sm animate-slide-up">
            {[
              { l: 'Female', v: Gender.Female, i: <Icons.Female /> },
              { l: 'Male', v: Gender.Male, i: <Icons.Male /> },
-             { l: 'Non-binary', v: Gender.NonBinary, i: <Icons.Genderless /> }
            ].map((opt) => (
              <button
                 key={opt.l}
                 onClick={() => { updateData('gender', opt.v); handleNext(); }}
-                className="flex flex-col items-center justify-center bg-[#162B36]/90 p-4 rounded-2xl h-32 border border-transparent hover:border-teal-500 transition-all backdrop-blur-sm"
+                className="flex-1 glass-panel flex flex-col items-center justify-center py-6 rounded-2xl hover:bg-white/10 transition-all duration-300 group border border-white/5 hover:border-teal-500/30 active:scale-95"
              >
-                <div className="text-teal-400 mb-2">{opt.i}</div>
-                <span className="text-sm font-medium">{opt.l}</span>
+                <div className="text-gray-500 group-hover:text-teal-400 transition-colors mb-2">{opt.i}</div>
+                <span className="text-[10px] font-medium text-gray-400 group-hover:text-white uppercase tracking-wider">{opt.l}</span>
              </button>
            ))}
          </div>
+          <button
+            onClick={() => { updateData('gender', Gender.NonBinary); handleNext(); }}
+            className="mt-3 w-full max-w-sm glass-panel flex items-center justify-center py-4 rounded-2xl hover:bg-white/10 transition-all duration-300 group border border-white/5 hover:border-teal-500/30 active:scale-95"
+            >
+            <span className="text-[10px] font-medium text-gray-400 group-hover:text-white uppercase tracking-wider flex items-center gap-2">
+                <span className="scale-75"><Icons.Genderless /></span> Other / Non-Binary
+            </span>
+        </button>
+      </ContentArea>
+       <div className="pb-safe p-4 text-center z-10">
+         <p className="text-[9px] uppercase tracking-widest font-mono text-gray-600">Powered by Gemini 3</p>
        </div>
-    </div>
+    </PageContainer>
   );
 
   const renderBirthDate = () => (
-    <div className="p-6">
-      <Title>When’s your birthday?</Title>
-      <Subtitle>It’s also important to know your date of birth for making complete and accurate predictions.</Subtitle>
-      <div className="my-8">
-        <Input 
-          type="date" 
-          value={userData.birthDate} 
-          onChange={(e) => updateData('birthDate', e.target.value)} 
-          className="text-white"
-        />
-      </div>
-      <div className="fixed bottom-6 left-0 right-0 mx-auto w-full max-w-md px-6">
-        <PrimaryButton onClick={handleNext} disabled={!userData.birthDate}>Continue</PrimaryButton>
-      </div>
-    </div>
+    <PageContainer>
+        <ContentArea className="flex flex-col justify-center">
+            <Title>First Breath</Title>
+            <Subtitle>When did your journey begin?</Subtitle>
+            <Input 
+                type="date" 
+                value={userData.birthDate} 
+                onChange={(e) => updateData('birthDate', e.target.value)} 
+                className="text-white appearance-none"
+            />
+        </ContentArea>
+        <ActionArea>
+            <PrimaryButton onClick={handleNext} disabled={!userData.birthDate}>Continue</PrimaryButton>
+        </ActionArea>
+    </PageContainer>
   );
 
   const renderBirthTime = () => (
-    <div className="p-6">
-      <Title>Do you know your birth time?</Title>
-      <Subtitle>This helps us find out where planets were placed in the sky at the moment of your birth.</Subtitle>
-      <div className="my-8">
-        <Input 
-          type="time" 
-          value={userData.birthTime || ''} 
-          onChange={(e) => updateData('birthTime', e.target.value)} 
-        />
-      </div>
-      <div className="text-center mt-4">
-        <button onClick={handleNext} className="text-teal-500 text-sm underline">I don't remember</button>
-      </div>
-      <div className="fixed bottom-6 left-0 right-0 mx-auto w-full max-w-md px-6">
-        <PrimaryButton onClick={handleNext}>Continue</PrimaryButton>
-      </div>
-    </div>
+    <PageContainer>
+        <ContentArea className="flex flex-col justify-center">
+            <Title>Precision Time</Title>
+            <Subtitle>Needed for your Rising Sign.</Subtitle>
+            <Input 
+                type="time" 
+                value={userData.birthTime || ''} 
+                onChange={(e) => updateData('birthTime', e.target.value)} 
+            />
+            <button onClick={handleNext} className="mt-8 text-teal-500/70 text-xs hover:text-teal-400 transition-colors">Skip / I don't know</button>
+        </ContentArea>
+        <ActionArea>
+             <PrimaryButton onClick={handleNext}>Confirm</PrimaryButton>
+        </ActionArea>
+    </PageContainer>
   );
 
   const renderBirthPlace = () => (
-    <div className="p-6">
-      <Title>Where were you born?</Title>
-      <Subtitle>The place is important to explore your core personality traits, needs, and desires.</Subtitle>
-      <div className="my-8">
-        <Input 
-          type="text" 
-          placeholder="Toronto, Ontario, Canada"
-          value={userData.birthPlace} 
-          onChange={(e) => updateData('birthPlace', e.target.value)} 
-        />
-      </div>
-      <div className="fixed bottom-6 left-0 right-0 mx-auto w-full max-w-md px-6">
-        <PrimaryButton onClick={handleNext} disabled={!userData.birthPlace}>Continue</PrimaryButton>
-      </div>
-    </div>
+    <PageContainer>
+        <ContentArea className="flex flex-col justify-center">
+            <Title>Cosmic Origin</Title>
+            <Subtitle>Where were you born?</Subtitle>
+            <Input 
+                type="text" 
+                placeholder="City, Country"
+                value={userData.birthPlace} 
+                onChange={(e) => updateData('birthPlace', e.target.value)} 
+                autoFocus
+            />
+        </ContentArea>
+        <ActionArea>
+            <PrimaryButton onClick={handleNext} disabled={!userData.birthPlace}>Align Stars</PrimaryButton>
+        </ActionArea>
+    </PageContainer>
   );
 
   const renderRelationship = () => (
-    <div className="p-6">
-      <Title>Relationship Status</Title>
-      <Subtitle>To get started, tell us about your current relationship status.</Subtitle>
-      <OptionGrid>
-        {[
-          { l: RelationshipStatus.Relationship, i: <Icons.Heart /> },
-          { l: RelationshipStatus.BrokeUp, i: <Icons.BrokenHeart /> },
-          { l: RelationshipStatus.Engaged, i: <Icons.Smile /> },
-          { l: RelationshipStatus.Married, i: <Icons.Ring /> },
-          { l: RelationshipStatus.Looking, i: <Icons.Star /> },
-          { l: RelationshipStatus.Single, i: <Icons.Smile /> },
-        ].map(opt => (
-          <SelectionCard 
-            key={opt.l} 
-            selected={userData.relationshipStatus === opt.l}
-            onClick={() => { updateData('relationshipStatus', opt.l); handleNext(); }}
-            icon={opt.i}
-          >
-            {opt.l}
-          </SelectionCard>
-        ))}
-      </OptionGrid>
-    </div>
+    <PageContainer>
+      <ContentArea>
+          <Title>Status</Title>
+          <Subtitle>Your heart's current position.</Subtitle>
+          <OptionGrid>
+            {[
+              { l: RelationshipStatus.Single, i: <Icons.Smile /> },
+              { l: RelationshipStatus.Looking, i: <Icons.Star /> },
+              { l: RelationshipStatus.Relationship, i: <Icons.Heart /> },
+              { l: RelationshipStatus.Married, i: <Icons.Ring /> },
+              { l: RelationshipStatus.BrokeUp, i: <Icons.BrokenHeart /> },
+            ].map(opt => (
+              <SelectionCard 
+                key={opt.l} 
+                selected={userData.relationshipStatus === opt.l}
+                onClick={() => { updateData('relationshipStatus', opt.l); handleNext(); }}
+                icon={opt.i}
+              >
+                {opt.l}
+              </SelectionCard>
+            ))}
+          </OptionGrid>
+      </ContentArea>
+    </PageContainer>
   );
 
   const renderGoals = () => {
@@ -321,279 +356,330 @@ export default function App() {
     };
 
     return (
-        <div className="p-6 pb-24">
-        <Title>What are your goals?</Title>
-        <Subtitle>Select up to 3</Subtitle>
-        <div className="text-center mb-4 text-teal-400 font-bold">{userData.goals.length}/3</div>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { l: Goal.Family, i: <Icons.Heart /> },
-            { l: Goal.Career, i: <Icons.Briefcase /> },
-            { l: Goal.Health, i: <Icons.Smile /> },
-            { l: Goal.Marriage, i: <Icons.Ring /> },
-            { l: Goal.Travel, i: <Icons.Plane /> },
-            { l: Goal.Education, i: <Icons.Book /> },
-            { l: Goal.Friends, i: <Icons.Users /> },
-            { l: Goal.Children, i: <Icons.Baby /> },
-          ].map(opt => (
-            <button
-                key={opt.l}
-                onClick={() => toggleGoal(opt.l)}
-                className={`flex items-center p-3 rounded-xl border text-left transition-all ${
-                    userData.goals.includes(opt.l)
-                    ? 'bg-teal-900/50 border-teal-500 text-teal-100' 
-                    : 'bg-[#162B36] border-transparent text-gray-300'
-                }`}
-            >
-                <span className="mr-2">{opt.i}</span>
-                <span className="text-sm font-medium">{opt.l}</span>
-            </button>
-          ))}
-        </div>
-        <div className="fixed bottom-6 left-0 right-0 mx-auto w-full max-w-md px-6">
-            <PrimaryButton onClick={handleNext} disabled={userData.goals.length === 0}>Continue</PrimaryButton>
-        </div>
-      </div>
+      <PageContainer>
+        <ContentArea>
+            <Title>Focus Areas</Title>
+            <Subtitle>Select up to 3 topics.</Subtitle>
+            
+            <div className="grid grid-cols-2 gap-3 pb-4">
+            {[
+                { l: Goal.Family, i: <Icons.Heart /> },
+                { l: Goal.Career, i: <Icons.Briefcase /> },
+                { l: Goal.Health, i: <Icons.Smile /> },
+                { l: Goal.Marriage, i: <Icons.Ring /> },
+                { l: Goal.Travel, i: <Icons.Plane /> },
+                { l: Goal.Education, i: <Icons.Book /> },
+                { l: Goal.Friends, i: <Icons.Users /> },
+                { l: Goal.Children, i: <Icons.Baby /> },
+            ].map(opt => {
+                const isSelected = userData.goals.includes(opt.l);
+                return (
+                <button
+                    key={opt.l}
+                    onClick={() => toggleGoal(opt.l)}
+                    className={`glass-panel flex flex-col items-center p-4 rounded-xl border transition-all duration-200 active:scale-95 ${
+                        isSelected
+                        ? 'bg-teal-900/30 border-teal-500 shadow-[0_0_10px_rgba(20,184,166,0.1)]' 
+                        : 'hover:bg-white/5 hover:border-white/20'
+                    }`}
+                >
+                    <div className="text-xl mb-2 filter drop-shadow-md">{opt.i}</div>
+                    <span className={`text-[10px] font-bold uppercase tracking-wide ${isSelected ? 'text-teal-200' : 'text-gray-400'}`}>{opt.l}</span>
+                </button>
+            )})}
+            </div>
+        </ContentArea>
+        <ActionArea>
+            <PrimaryButton onClick={handleNext} disabled={userData.goals.length === 0}>
+                Next ({userData.goals.length}/3)
+            </PrimaryButton>
+        </ActionArea>
+      </PageContainer>
     );
   };
 
   const renderColor = () => (
-    <div className="p-6">
-        <Title>Preferred Color?</Title>
-        <Subtitle>Important for better personalization.</Subtitle>
-        <OptionGrid>
-            {['Red', 'Yellow', 'Blue', 'Orange', 'Green'].map(c => (
-                 <div 
-                 key={c}
-                 onClick={() => { updateData('favoriteColor', c); handleNext(); }}
-                 className="flex items-center p-4 rounded-xl bg-[#162B36] cursor-pointer hover:bg-[#1e3a4a] transition-colors"
-               >
-                 <div className="w-8 h-8 rounded-full mr-4 border border-white/10" style={{ backgroundColor: c.toLowerCase() }}></div>
-                 <span className="text-lg text-white">{c}</span>
-               </div>
+    <PageContainer>
+      <ContentArea>
+        <Title>Aura</Title>
+        <Subtitle>Select a resonance frequency.</Subtitle>
+        <div className="space-y-3">
+            {[
+                { n: 'Red', c: 'from-red-600 to-orange-600' },
+                { n: 'Gold', c: 'from-yellow-400 to-amber-600' },
+                { n: 'Blue', c: 'from-blue-500 to-cyan-600' },
+                { n: 'Purple', c: 'from-purple-600 to-indigo-600' },
+                { n: 'Green', c: 'from-emerald-500 to-teal-600' }
+            ].map(colorOpt => (
+                 <button 
+                   key={colorOpt.n}
+                   onClick={() => { updateData('favoriteColor', colorOpt.n); handleNext(); }}
+                   className="w-full relative overflow-hidden flex items-center p-4 rounded-xl bg-[#0E1621] hover:scale-[1.01] transition-all border border-white/5 active:scale-95"
+                 >
+                   <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${colorOpt.c}`}></div>
+                   <div className={`w-12 h-12 rounded-full mr-4 bg-gradient-to-br ${colorOpt.c} opacity-20 blur-lg absolute right-0`}></div>
+                   <span className="text-lg text-white font-serif pl-4">{colorOpt.n}</span>
+                 </button>
             ))}
-        </OptionGrid>
-    </div>
+        </div>
+      </ContentArea>
+    </PageContainer>
   );
 
   const renderElement = () => (
-    <div className="p-6">
-        <Title>Which element of nature do you like best?</Title>
-        <OptionGrid>
-            {[
-                {l: 'Earth', i: <Icons.Leaf />}, 
-                {l: 'Water', i: <Icons.Water />}, 
-                {l: 'Fire', i: <Icons.Fire />}, 
-                {l: 'Air', i: <Icons.Wind />}
-            ].map(e => (
-                <SelectionCard 
-                    key={e.l} 
-                    selected={userData.element === e.l}
-                    onClick={() => { updateData('element', e.l); handleNext(); }}
-                    icon={e.i}
-                >
-                    {e.l}
-                </SelectionCard>
-            ))}
-        </OptionGrid>
-    </div>
-  );
-
-  const renderPalmIntro = () => (
-      <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-          <Title>Take a photo of your left palm</Title>
-          <div className="relative my-8">
-              {/* Palm Scan Graphic */}
-              <div className="w-64 h-80 border-2 border-dashed border-teal-500/50 rounded-3xl flex items-center justify-center bg-[#162B36]/30">
-                  <svg className="w-48 h-48 text-teal-800 opacity-50" viewBox="0 0 100 100" fill="currentColor">
-                     <path d="M50 95 C 40 90, 30 80, 30 60 L 25 35 A 3 3 0 0 1 31 35 L 35 55 L 38 30 A 3 3 0 0 1 44 30 L 45 50 L 50 20 A 3 3 0 0 1 56 20 L 55 50 L 62 25 A 3 3 0 0 1 68 25 L 65 55 L 75 40 A 3 3 0 0 1 80 45 L 70 70 C 65 85, 60 90, 50 95" />
-                  </svg>
-                  {/* Overlay Tags */}
-                  <div className="absolute top-10 right-0 bg-[#0f172a] text-xs px-2 py-1 rounded-full border border-teal-500 text-teal-400 flex items-center gap-1"><Icons.Heart/> Marriage</div>
-                  <div className="absolute bottom-20 left-0 bg-[#0f172a] text-xs px-2 py-1 rounded-full border border-teal-500 text-teal-400 flex items-center gap-1"><Icons.Briefcase/> Career</div>
-              </div>
-              <div className="absolute top-1/2 left-0 right-0 h-1 bg-teal-400 shadow-[0_0_15px_#4FD1C5] animate-[scan_2s_ease-in-out_infinite]"></div>
-          </div>
-          <p className="text-gray-400 text-sm mb-8 max-w-xs">Privacy is a priority. We only process non-identifiable data to ensure anonymity.</p>
-          <div className="w-full">
-            <PrimaryButton onClick={handleNext}>Take a photo</PrimaryButton>
-          </div>
-      </div>
+    <PageContainer>
+        <ContentArea>
+            <Title>Element</Title>
+            <Subtitle>Your dominant nature.</Subtitle>
+            <OptionGrid>
+                {[
+                    {l: 'Earth', i: <Icons.Leaf />, desc: 'Stable, Practical'}, 
+                    {l: 'Water', i: <Icons.Water />, desc: 'Intuitive, Deep'}, 
+                    {l: 'Fire', i: <Icons.Fire />, desc: 'Dynamic, Bold'}, 
+                    {l: 'Air', i: <Icons.Wind />, desc: 'Intellectual, Free'}
+                ].map(e => (
+                    <button 
+                        key={e.l} 
+                        onClick={() => { updateData('element', e.l); handleNext(); }}
+                        className={`
+                          w-full glass-panel flex items-center p-4 mb-2 rounded-xl transition-all border text-left active:scale-95
+                          ${userData.element === e.l 
+                            ? 'bg-teal-900/30 border-teal-500/50' 
+                            : 'hover:bg-white/5 hover:border-white/20'}
+                        `}
+                    >
+                        <div className="p-2 bg-white/5 rounded-full mr-4 text-lg">{e.i}</div>
+                        <div className="flex flex-col">
+                            <span className="text-lg font-serif text-white">{e.l}</span>
+                            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{e.desc}</span>
+                        </div>
+                    </button>
+                ))}
+            </OptionGrid>
+        </ContentArea>
+    </PageContainer>
   );
 
   const renderResultsPreview = () => {
       if (!palmResult) return null;
 
       const StatBar = ({ label, value, color }: { label: string, value: number, color: string }) => (
-          <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2 w-24">
-                  <div className={`w-2 h-2 rounded-full ${color}`}></div>
-                  <span className="text-sm font-medium text-gray-200">{label}</span>
+          <div className="mb-4 animate-slide-up">
+              <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{label}</span>
+                  <span className="text-xs font-mono text-white">{value}%</span>
               </div>
-              <div className="flex-1 h-2 bg-gray-700 rounded-full mx-3 overflow-hidden">
-                  <div className={`h-full rounded-full ${color}`} style={{ width: `${value}%` }}></div>
+              <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full ${color} shadow-[0_0_8px_currentColor] transition-all duration-1000 ease-out`} style={{ width: `${value}%` }}></div>
               </div>
-              <span className="text-xs font-mono text-gray-400">{value}%</span>
           </div>
       );
 
       return (
-          <div className="relative min-h-screen bg-[#0d1f2d]">
-              {/* Background Image Effect */}
-              <div className="absolute inset-0 z-0 opacity-20">
-                 {userData.palmImage && <img src={userData.palmImage} className="w-full h-full object-cover blur-sm" alt="Palm" />}
+          <PageContainer>
+              <div className="absolute inset-0 z-0">
+                 {userData.palmImage && <img src={userData.palmImage} className="w-full h-full object-cover opacity-10 blur-xl scale-110" alt="Palm" />}
+                 <div className="absolute inset-0 bg-gradient-to-t from-[#050B14] via-[#050B14]/95 to-[#050B14]/80"></div>
               </div>
-              <div className="relative z-10 flex flex-col h-full p-6 bg-gradient-to-b from-[#0d1f2d]/80 via-[#0d1f2d] to-[#0d1f2d]">
-                  <h1 className="text-3xl serif text-center text-[#eef2f6] mt-8 mb-2">Your palm reading</h1>
-                  <p className="text-center text-teal-400 text-sm mb-10 font-medium tracking-wide">IS READY!</p>
 
-                  <div className="bg-[#162B36]/80 backdrop-blur-md rounded-2xl p-6 border border-white/5 shadow-2xl mb-8">
-                      <StatBar label="Love" value={palmResult.loveScore} color="bg-rose-500" />
-                      <StatBar label="Health" value={palmResult.healthScore} color="bg-teal-400" />
-                      <StatBar label="Wisdom" value={palmResult.wisdomScore} color="bg-yellow-400" />
-                      <StatBar label="Career" value={palmResult.careerScore} color="bg-violet-500" />
-                      
-                      <hr className="border-white/10 my-6"/>
-
-                      <p className="text-gray-300 text-sm leading-relaxed mb-4">
-                          <strong className="text-rose-400">Heart Line:</strong> {palmResult.loveText}
-                      </p>
-                       <p className="text-gray-300 text-sm leading-relaxed mb-4">
-                          <strong className="text-teal-400">Life Line:</strong> {palmResult.healthText}
-                      </p>
-                      
-                      <div className="mt-4 text-center">
-                          <button className="text-teal-400 text-xs font-bold uppercase tracking-widest hover:text-teal-300">More data in full report</button>
-                      </div>
+              <ContentArea className="relative z-10 flex flex-col pt-8">
+                  <div className="text-center mb-6">
+                      <h1 className="text-3xl serif text-white mb-2">Analysis Complete</h1>
+                      <div className="h-0.5 w-16 bg-teal-500 mx-auto rounded-full shadow-[0_0_10px_#2dd4bf]"></div>
                   </div>
 
-                  <div className="mt-auto">
-                      <PrimaryButton onClick={handleNext}>Get Full Report</PrimaryButton>
+                  <div className="glass-panel rounded-2xl p-6 mb-6 border-t border-white/10 shadow-2xl">
+                      <StatBar label="Emotion" value={palmResult.loveScore} color="bg-rose-500" />
+                      <StatBar label="Vitality" value={palmResult.healthScore} color="bg-emerald-400" />
+                      <StatBar label="Intellect" value={palmResult.wisdomScore} color="bg-blue-400" />
+                      <StatBar label="Fate" value={palmResult.careerScore} color="bg-purple-500" />
                   </div>
-              </div>
-          </div>
+                  
+                  <div className="p-4 rounded-xl border-l-2 border-teal-500/50 bg-gradient-to-r from-teal-900/10 to-transparent">
+                      <p className="text-gray-300 text-sm leading-6 font-light italic">
+                          "{palmResult.summary}"
+                      </p>
+                  </div>
+              </ContentArea>
+              <ActionArea className="relative z-10">
+                  <PrimaryButton onClick={handleNext}>View Full Report</PrimaryButton>
+              </ActionArea>
+          </PageContainer>
       )
   };
 
   const renderFullReport = () => (
-    <div className="p-6 h-screen overflow-y-auto bg-[#0d1f2d]">
-       <div className="flex items-center justify-between mb-8">
-            <button onClick={() => setStep(AppStep.LANDING)} className="text-gray-400"><Icons.Back/></button>
-            <span className="text-teal-500 font-serif font-bold">PREMIUM REPORT</span>
+    <PageContainer>
+       {/* Sticky Header */}
+       <div className="shrink-0 z-50 bg-[#050B14]/95 backdrop-blur-lg px-4 py-3 border-b border-white/5 flex items-center justify-between pt-safe">
+            <button onClick={() => setStep(AppStep.LANDING)} className="text-gray-400 hover:text-white"><Icons.Back/></button>
+            <span className="text-teal-400 font-serif tracking-[0.2em] text-[10px] font-bold uppercase">Cosmic Report</span>
             <div className="w-6"></div>
        </div>
 
-       <div className="text-center mb-8">
-           <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-teal-500 to-indigo-600 p-1 mb-4">
-               <div className="w-full h-full rounded-full bg-[#0d1f2d] flex items-center justify-center flex-col">
-                   <span className="text-2xl font-serif text-white">{astroResult?.sunSign || 'Sun'}</span>
-                   <span className="text-xs text-gray-400">Sun Sign</span>
+       <ContentArea className="pb-10">
+           {/* Hero Section */}
+           <div className="text-center mb-8 relative mt-4">
+               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-teal-500/10 blur-[50px] rounded-full"></div>
+               <div className="relative">
+                   <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-tr from-teal-500 to-indigo-600 p-[1px] mb-4 shadow-2xl">
+                       <div className="w-full h-full rounded-full bg-[#050B14] flex items-center justify-center flex-col border-2 border-[#050B14]">
+                           <span className="text-2xl font-serif text-white">{astroResult?.sunSign}</span>
+                       </div>
+                   </div>
+                   <h2 className="text-2xl serif text-white">The {astroResult?.sunSign} Soul</h2>
                </div>
            </div>
-           <h2 className="text-2xl font-serif text-white mb-2">Hello, {userData.gender === Gender.Female ? 'Goddess' : 'Traveler'}</h2>
-           <p className="text-gray-400 text-sm">Born in {userData.birthPlace}</p>
-       </div>
 
-       <div className="grid grid-cols-2 gap-4 mb-8">
-           <div className="bg-[#162B36] p-4 rounded-xl text-center">
-               <span className="block text-gray-400 text-xs uppercase mb-1">Moon Sign</span>
-               <span className="text-lg text-teal-200 serif">{astroResult?.moonSign || 'Calculating...'}</span>
+           {/* Planetary Trinity - Compact Grid */}
+           <div className="grid grid-cols-3 gap-2 mb-6">
+               {[
+                   { l: 'Sun', v: astroResult?.sunSign, c: 'text-amber-300' },
+                   { l: 'Moon', v: astroResult?.moonSign, c: 'text-gray-300' },
+                   { l: 'Rising', v: astroResult?.ascendant, c: 'text-teal-300' }
+               ].map((item) => (
+                   <div key={item.l} className="glass-panel p-2 rounded-xl text-center border-t border-white/5 relative overflow-hidden">
+                       <span className="block text-gray-500 text-[8px] uppercase tracking-widest mb-1">{item.l}</span>
+                       <span className={`text-xs font-serif ${item.c} block truncate font-medium`}>{item.v || 'N/A'}</span>
+                   </div>
+               ))}
            </div>
-           <div className="bg-[#162B36] p-4 rounded-xl text-center">
-               <span className="block text-gray-400 text-xs uppercase mb-1">Ascendant</span>
-               <span className="text-lg text-teal-200 serif">{astroResult?.ascendant || 'Calculating...'}</span>
+
+           {/* Core Prediction */}
+           <div className="bg-[#0E1621] border border-teal-500/10 p-5 rounded-2xl mb-6 relative overflow-hidden shadow-lg">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/5 rounded-full blur-2xl"></div>
+               <h3 className="text-sm serif text-white mb-3 flex items-center gap-2">
+                   <span className="text-teal-400"><Icons.Sparkles /></span> Cosmic Forecast
+               </h3>
+               <p className="text-gray-300 leading-6 text-sm font-light font-mystic">
+                   {astroResult?.prediction}
+               </p>
            </div>
-       </div>
+            
+            {/* Palmistry Integration */}
+            {palmResult && (
+                <div className="glass-panel p-5 rounded-2xl mb-6 border border-white/5 relative">
+                    <h3 className="text-sm serif text-white mb-4 flex items-center gap-2">
+                        <span>✋</span> Palm Insight
+                    </h3>
+                    <div className="space-y-4">
+                        <div>
+                            <h4 className="text-rose-400/80 text-[10px] font-bold uppercase mb-1 tracking-wider">Heart & Emotion</h4>
+                            <p className="text-gray-400 text-xs leading-5">{palmResult.loveText}</p>
+                        </div>
+                        <div>
+                            <h4 className="text-purple-400/80 text-[10px] font-bold uppercase mb-1 tracking-wider">Fate & Career</h4>
+                            <p className="text-gray-400 text-xs leading-5">{palmResult.careerText}</p>
+                        </div>
+                         <div className="bg-teal-900/10 p-3 rounded-lg mt-2 border border-teal-500/10">
+                            <span className="text-teal-400 text-[9px] font-bold uppercase block mb-1 tracking-wider">Prediction</span>
+                            <p className="text-teal-100/80 text-xs italic font-light">{palmResult.dominantHandPrediction}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
-       <div className="bg-gradient-to-r from-teal-900/40 to-indigo-900/40 border border-teal-500/30 p-6 rounded-2xl mb-8 relative overflow-hidden">
-           <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-teal-500/20 rounded-full blur-xl"></div>
-           <h3 className="text-xl serif text-white mb-3 relative z-10">Cosmic Prediction</h3>
-           <p className="text-gray-300 leading-relaxed text-sm relative z-10">
-               {astroResult?.prediction || "The stars are currently aligning to generate your unique path..."}
-           </p>
-       </div>
-
-        <div className="bg-[#162B36] p-6 rounded-2xl mb-8">
-           <h3 className="text-xl serif text-white mb-4">Palm Summary</h3>
-           <p className="text-gray-300 leading-relaxed text-sm italic">
-               "{palmResult?.summary || "Analyzing palm lines..."}"
-           </p>
-        </div>
-
-       <div className="text-center pb-8">
-           <p className="text-xs text-gray-500">Power Word</p>
-           <p className="text-3xl serif text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-indigo-400 font-bold uppercase tracking-widest">
-               {astroResult?.powerWord || "DESTINY"}
-           </p>
-       </div>
-    </div>
+            {/* Power Grid */}
+           <div className="grid grid-cols-2 gap-3 mb-8">
+               <div className="glass-panel p-4 rounded-xl text-center flex flex-col items-center justify-center">
+                   <span className="block text-gray-500 text-[9px] uppercase tracking-widest mb-1">Power Word</span>
+                   <span className="text-lg font-bold text-white uppercase tracking-widest">{astroResult?.powerWord}</span>
+               </div>
+               <div className="glass-panel p-4 rounded-xl text-center relative overflow-hidden flex flex-col items-center justify-center">
+                   <div className="absolute inset-0 opacity-20 blur-xl" style={{backgroundColor: astroResult?.luckyColor?.toLowerCase().replace(' ', '')}}></div>
+                   <span className="block text-gray-500 text-[9px] uppercase tracking-widest mb-1">Lucky Color</span>
+                   <span className="text-lg font-bold text-white relative z-10">{astroResult?.luckyColor}</span>
+               </div>
+           </div>
+           
+           <div className="text-center pb-8 opacity-40">
+                <button onClick={() => setStep(AppStep.LANDING)} className="w-full py-3 border border-gray-800 rounded-xl text-gray-400 text-xs hover:text-white hover:border-white/20 transition-all">Start New Reading</button>
+           </div>
+       </ContentArea>
+    </PageContainer>
   );
 
-  // --- Main Switch ---
-
   return (
-    <div className="min-h-screen max-w-md mx-auto bg-[#0d1f2d] shadow-2xl overflow-hidden relative font-sans text-gray-100">
+    <div className="h-full w-full max-w-md mx-auto bg-[#050B14] shadow-2xl relative font-sans text-gray-100 selection:bg-teal-500/30 overflow-hidden flex flex-col">
       {step !== AppStep.LANDING && step !== AppStep.RESULTS_PREVIEW && step !== AppStep.FULL_REPORT && (
         <Header step={step} totalSteps={14} onBack={handleBack} />
       )}
       
-      <div className="h-full">
-        {step === AppStep.LANDING && renderLanding()}
-        {step === AppStep.BIRTH_DATE && renderBirthDate()}
-        {step === AppStep.BIRTH_TIME && renderBirthTime()}
-        {step === AppStep.BIRTH_PLACE && renderBirthPlace()}
-        
-        {step === AppStep.PROCESSING_CHART && (
-          <ProcessingStep 
-            title="Mapping your birth chart..." 
-            subtitle="Your chart shows a rare spark — let's discover your best match"
-            onNext={handleNext}
-            onMount={() => {
-              if (!astroResult) {
-                generateAstrologyChart(userData).then(setAstroResult);
-              }
-            }}
-          />
-        )}
-        
-        {step === AppStep.RELATIONSHIP && renderRelationship()}
-        {step === AppStep.GOALS && renderGoals()}
-        {step === AppStep.COLOR && renderColor()}
-        {step === AppStep.ELEMENT && renderElement()}
-        
-        {step === AppStep.PROCESSING_ACCURACY && (
-          <ProcessingStep 
-            title="Forecast accuracy" 
-            subtitle="You're close to a big reveal! Confirm one last thing..." 
-            duration={3000}
-            onNext={handleNext}
-          />
-        )}
-        
-        {step === AppStep.PALM_INTRO && renderPalmIntro()}
-        
-        {step === AppStep.PALM_UPLOAD && (
-          <PalmUploadStep 
-            onImageSelected={(img) => {
-              updateData('palmImage', img);
-              handleNext();
-            }}
-          />
-        )}
-        
-        {step === AppStep.PROCESSING_PALM && (
-          <PalmAnalysisStep 
-            palmImage={userData.palmImage}
-            onComplete={(result) => {
-              setPalmResult(result);
-              handleNext();
-            }}
-          />
-        )}
-        
-        {step === AppStep.RESULTS_PREVIEW && renderResultsPreview()}
-        {step === AppStep.FULL_REPORT && renderFullReport()}
-      </div>
+      {step === AppStep.LANDING && renderLanding()}
+      {step === AppStep.BIRTH_DATE && renderBirthDate()}
+      {step === AppStep.BIRTH_TIME && renderBirthTime()}
+      {step === AppStep.BIRTH_PLACE && renderBirthPlace()}
+      
+      {step === AppStep.PROCESSING_CHART && (
+        <ProcessingStep 
+          title="Aligning Stars" 
+          subtitle="Calculating planetary positions..."
+          tasks={['Sun Position', 'Moon Phase', 'House Cusps', 'Aspects']}
+          minDuration={3000}
+          processPromise={generateAstrologyChart(userData)}
+          onComplete={(result) => {
+             if (result) setAstroResult(result);
+             handleNext();
+          }}
+        />
+      )}
+      
+      {step === AppStep.RELATIONSHIP && renderRelationship()}
+      {step === AppStep.GOALS && renderGoals()}
+      {step === AppStep.COLOR && renderColor()}
+      {step === AppStep.ELEMENT && renderElement()}
+      
+      {step === AppStep.PROCESSING_ACCURACY && (
+        <ProcessingStep 
+          title="Deepening" 
+          subtitle="Connecting personal data..." 
+          tasks={['Elemental Resonance', 'Refining', 'Scanning Transits']}
+          minDuration={2000}
+          onComplete={handleNext}
+        />
+      )}
+      
+      {step === AppStep.PALM_INTRO && (
+         <PageContainer>
+            <ContentArea className="flex flex-col items-center justify-center text-center">
+             <div className="w-24 h-24 bg-teal-900/10 rounded-full flex items-center justify-center mb-6 border border-teal-500/20 relative">
+                <div className="absolute inset-0 rounded-full border border-teal-500/10 animate-ping"></div>
+                <span className="text-4xl filter drop-shadow-[0_0_10px_rgba(45,212,191,0.5)]">✋</span>
+             </div>
+             <Title>The Final Layer</Title>
+             <Subtitle>Your birth chart shows potential. Your palm shows reality.</Subtitle>
+           </ContentArea>
+           <ActionArea>
+             <PrimaryButton onClick={handleNext}>Analyze Palm</PrimaryButton>
+           </ActionArea>
+         </PageContainer>
+      )}
+      
+      {step === AppStep.PALM_UPLOAD && (
+        <PalmUploadStep 
+          onImageSelected={(img) => {
+            updateData('palmImage', img);
+            handleNext();
+          }}
+        />
+      )}
+      
+      {step === AppStep.PROCESSING_PALM && (
+        <ProcessingStep 
+          title="Vision Analysis" 
+          subtitle="Reading topographical lines..."
+          tasks={['Heart Line Depth', 'Head Line Curve', 'Life Line Vitality', 'Fate Markers']}
+          minDuration={5000}
+          processPromise={analyzePalmImage(userData.palmImage!)}
+          onComplete={(result) => {
+            if (result) setPalmResult(result);
+            handleNext();
+          }}
+        />
+      )}
+      
+      {step === AppStep.RESULTS_PREVIEW && renderResultsPreview()}
+      {step === AppStep.FULL_REPORT && renderFullReport()}
     </div>
   );
 }
